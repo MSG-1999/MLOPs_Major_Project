@@ -1,0 +1,96 @@
+# docker-compose.yml
+# Full stack: DreamForge app + MLflow server + Prometheus
+
+version: "3.9"
+
+services:
+
+  # ── Stable Diffusion Streamlit App ──────────────────────────────────
+  dreamforge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: app
+    container_name: dreamforge_app
+    ports:
+      - "8503:8503"    # Streamlit UI
+      - "8012:8012"    # Prometheus metrics
+    volumes:
+      - ./model_cache:/app/model_cache      # Persist downloaded model
+      - ./artifacts:/app/artifacts          # Generated images
+      - ./logs:/app/logs
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5012
+      - MODEL_CACHE_DIR=/app/model_cache
+      - OUTPUT_DIR=/app/artifacts/generated
+    env_file:
+      - .env
+    depends_on:
+      - mlflow
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - dreamforge_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8503/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+
+  # ── MLflow Tracking Server ───────────────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.7.1
+    container_name: dreamforge_mlflow
+    ports:
+      - "5012:5012"
+    volumes:
+      - ./mlflow-artifacts:/mlflow/artifacts
+      - ./mlflow.db:/mlflow/mlflow.db
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5012
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+      --serve-artifacts
+    restart: unless-stopped
+    networks:
+      - dreamforge_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5012/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ── Prometheus (optional) ────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.47.0
+    container_name: dreamforge_prometheus
+    ports:
+      - "9092:9090"
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./configs/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    restart: unless-stopped
+    networks:
+      - dreamforge_net
+
+volumes:
+  prometheus_data:
+
+networks:
+  dreamforge_net:
+    driver: bridge
