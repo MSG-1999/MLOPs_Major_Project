@@ -106,12 +106,12 @@ DreamForge is decomposed into **four clean tiers**:
 ```
 ╔═══════════════════════════════════════════════════════════════════════╗
 ║                         FRONTEND TIER                                 ║
-║   Streamlit UI (port 8503)  ·  Plotly Dashboards                     ║
-║   Generation Controls  ·  Session Gallery  ·  MLOps Monitoring Tab   ║
+║   Streamlit UI (port 8503)  ·  Plotly Dashboards                      ║
+║   Generation Controls  ·  Session Gallery  ·  MLOps Monitoring Tab    ║
 ╠═══════════════════════════════════════════════════════════════════════╣
 ║                         PIPELINE TIER                                 ║
 ║   ModelManager (Singleton + threading.Lock + scheduler hot-swap)      ║
-║   InferenceEngine  ·  PromptProcessor  ·  ImageProcessor             ║
+║   InferenceEngine  ·  PromptProcessor  ·  ImageProcessor              ║
 ║   BatchProcessor (PriorityQueue + async worker)                       ║
 ╠═══════════════════════════════════════════════════════════════════════╣
 ║                        MONITORING TIER                                ║
@@ -120,7 +120,7 @@ DreamForge is decomposed into **four clean tiers**:
 ║   DriftDetector (sliding-window statistical alerts)                   ║
 ╠═══════════════════════════════════════════════════════════════════════╣
 ║                         TRAINING TIER                                 ║
-║   LoRATrainer (PEFT · AMP · cosine LR · noise offset)                ║
+║   LoRATrainer (PEFT · AMP · cosine LR · noise offset)                 ║
 ║   hpo_objective (Optuna + ASHA SuccessiveHalvingPruner)               ║
 ║   data.py  ·  prepare_mini_data.py                                    ║
 ╚═══════════════════════════════════════════════════════════════════════╝
